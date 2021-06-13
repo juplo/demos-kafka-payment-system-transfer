@@ -13,4 +13,5 @@ public class TransferServiceProperties
 {
   String bootstrapServers = "localhost:9092";
   String topic = "transfers";
+  String groupId = "transfers";
 }

@@ -11,7 +11,5 @@ public interface TransferRepository
 
   Optional<Transfer> get(Long id);
 
-  void update(Long id, Transfer.State oldState, Transfer.State newState) throws IllegalArgumentException;
-
   void remove(Long id);
 }

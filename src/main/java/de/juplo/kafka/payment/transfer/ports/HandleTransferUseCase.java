@@ -3,7 +3,7 @@ package de.juplo.kafka.payment.transfer.ports;
 import de.juplo.kafka.payment.transfer.domain.Transfer;
 
 
-public interface InitiateTransferUseCase
+public interface HandleTransferUseCase
 {
-  void initiate(Transfer transfer);
+  void handle(Transfer transfer);
 }

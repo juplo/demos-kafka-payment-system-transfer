@@ -3,7 +3,7 @@ package de.juplo.kafka.payment.transfer.adapter;
 
 import de.juplo.kafka.payment.transfer.domain.Transfer;
 import de.juplo.kafka.payment.transfer.ports.GetTransferUseCase;
-import de.juplo.kafka.payment.transfer.ports.InitiateTransferUseCase;
+import de.juplo.kafka.payment.transfer.ports.ReceiveTransferUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.async.DeferredResult;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
@@ -28,7 +29,7 @@ import java.util.Map;
 {
   public final static String PATH = "/transfers";
 
-  private final InitiateTransferUseCase initiateTransferUseCase;
+  private final ReceiveTransferUseCase receiveTransferUseCase;
   private final GetTransferUseCase getTransferUseCase;
 
 
@@ -36,7 +37,9 @@ import java.util.Map;
       path = PATH,
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<?> transfer(@Valid @RequestBody TransferDTO transferDTO)
+  public DeferredResult<ResponseEntity<?>> transfer(
+      HttpServletRequest request,
+      @Valid @RequestBody TransferDTO transferDTO)
   {
     Transfer transfer =
         Transfer
@@ -47,9 +50,25 @@ import java.util.Map;
             .amount(transferDTO.getAmount())
             .build();
 
-    initiateTransferUseCase.initiate(transfer);
+    DeferredResult<ResponseEntity<?>> result = new DeferredResult<>();
 
-    return ResponseEntity.created(URI.create(PATH + "/" + transferDTO.getId())).build();
+    receiveTransferUseCase
+        .receive(transfer)
+        .thenApply(
+            $ ->
+                ResponseEntity
+                    .created(URI.create(PATH + "/" + transferDTO.getId()))
+                    .build())
+        .thenAccept(
+            responseEntity -> result.setResult(responseEntity))
+        .exceptionally(
+            e ->
+            {
+              result.setErrorResult(e);
+              return null;
+            });
+
+    return result;
   }
 
   @GetMapping(

@@ -23,19 +23,7 @@ public class InMemoryTransferRepository implements TransferRepository
 
 
   @Override
-  public synchronized void store(Transfer transfer)
-  {
-    Optional
-        .ofNullable(map.get(transfer.getId()))
-        .ifPresentOrElse(
-            json ->
-            {
-              throw new IllegalArgumentException("Could not overwrite " + json + " with " + transfer);
-            },
-            () -> put(transfer));
-  }
-
-  private void put(Transfer transfer)
+  public void store(Transfer transfer)
   {
     try
     {
@@ -43,12 +31,12 @@ public class InMemoryTransferRepository implements TransferRepository
     }
     catch (JsonProcessingException e)
     {
-      log.error("Could not convert Transfer.class: {}", transfer, e);
+      throw new RuntimeException(e);
     }
   }
 
   @Override
-  public synchronized Optional<Transfer> get(Long id)
+  public Optional<Transfer> get(Long id)
   {
     return
         Optional
@@ -63,18 +51,6 @@ public class InMemoryTransferRepository implements TransferRepository
                 throw new RuntimeException("Could not convert JSON: " + json, e);
               }
             });
-  }
-
-  @Override
-  public synchronized void update(Long id, Transfer.State oldState, Transfer.State newState)
-  {
-    Transfer transfer = get(id).orElseThrow(() -> new IllegalArgumentException("Could not find transfer " + id));
-
-    if (transfer.getState() != oldState)
-      throw new IllegalArgumentException(("Unexpectd state for " + transfer + ", expected: " + oldState));
-
-    transfer.setState(newState);
-    put(transfer);
   }
 
   @Override
