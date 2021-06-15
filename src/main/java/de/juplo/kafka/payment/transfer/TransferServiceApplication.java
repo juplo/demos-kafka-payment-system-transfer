@@ -3,9 +3,11 @@ package de.juplo.kafka.payment.transfer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.juplo.kafka.payment.transfer.adapter.KafkaMessagingService;
+import de.juplo.kafka.payment.transfer.adapter.NoOpMessageService;
 import de.juplo.kafka.payment.transfer.adapter.TransferConsumer;
+import de.juplo.kafka.payment.transfer.adapter.TransferController;
+import de.juplo.kafka.payment.transfer.domain.Transfer;
 import de.juplo.kafka.payment.transfer.domain.TransferService;
-import de.juplo.kafka.payment.transfer.ports.MessagingService;
 import de.juplo.kafka.payment.transfer.ports.TransferRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -19,6 +21,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -46,6 +49,8 @@ public class TransferServiceApplication
     Properties props = new Properties();
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.bootstrapServers);
     props.put(ConsumerConfig.GROUP_ID_CONFIG, properties.groupId);
+    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 
@@ -64,23 +69,57 @@ public class TransferServiceApplication
       KafkaConsumer<String, String> consumer,
       ExecutorService executorService,
       ObjectMapper mapper,
-      TransferService transferService)
+      TransferService productionTransferService,
+      TransferService restoreTransferService)
   {
-    TransferConsumer transferConsumer =
+    return
         new TransferConsumer(
             properties.topic,
             consumer,
             executorService,
             mapper,
-            transferService,
-            transferService,
-            transferService);
-    transferConsumer.start();
-    return transferConsumer;
+            new TransferConsumer.ConsumerUseCases() {
+              @Override
+              public void create(Transfer transfer)
+              {
+                productionTransferService.create(transfer);
+              }
+
+              @Override
+              public Optional<Transfer> get(Long id)
+              {
+                return productionTransferService.get(id);
+              }
+
+              @Override
+              public void handle(Transfer transfer)
+              {
+                productionTransferService.handle(transfer);
+              }
+            },
+            new TransferConsumer.ConsumerUseCases() {
+              @Override
+              public void create(Transfer transfer)
+              {
+                restoreTransferService.create(transfer);
+              }
+
+              @Override
+              public Optional<Transfer> get(Long id)
+              {
+                return restoreTransferService.get(id);
+              }
+
+              @Override
+              public void handle(Transfer transfer)
+              {
+                restoreTransferService.handle(transfer);
+              }
+            });
   }
 
   @Bean
-  MessagingService kafkaMessagingService(
+  KafkaMessagingService kafkaMessagingService(
       KafkaProducer<String, String> producer,
       ObjectMapper mapper,
       TransferServiceProperties properties)
@@ -89,11 +128,27 @@ public class TransferServiceApplication
   }
 
   @Bean
-  TransferService transferService(
+  TransferService productionTransferService(
       TransferRepository repository,
-      MessagingService messagingService)
+      KafkaMessagingService kafkaMessagingService)
   {
-    return new TransferService(repository, messagingService);
+    return new TransferService(repository, kafkaMessagingService);
+  }
+
+  @Bean
+  TransferService restoreTransferService(
+      TransferRepository repository,
+      NoOpMessageService noOpMessageService)
+  {
+    return new TransferService(repository, noOpMessageService);
+  }
+
+  @Bean
+  TransferController transferController(
+      TransferService productionTransferService,
+      KafkaMessagingService kafkaMessagingService)
+  {
+    return new TransferController(productionTransferService, kafkaMessagingService);
   }
 
 

@@ -24,7 +24,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 
-@RestController
+@RequestMapping(TransferController.PATH)
+@ResponseBody
 @RequiredArgsConstructor
 @Slf4j
  public class TransferController
@@ -36,7 +37,7 @@ import java.util.concurrent.CompletableFuture;
 
 
   @PostMapping(
-      path = PATH,
+      path = "",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public DeferredResult<ResponseEntity<?>> transfer(
@@ -85,7 +86,7 @@ import java.util.concurrent.CompletableFuture;
   }
 
   @GetMapping(
-      path = PATH + "/{id}",
+      path = "/{id}",
       produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<TransferDTO> get(@PathVariable Long id)
   {

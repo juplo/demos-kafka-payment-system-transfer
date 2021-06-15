@@ -7,7 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 
-import static de.juplo.kafka.payment.transfer.domain.Transfer.State.*;
+import static de.juplo.kafka.payment.transfer.domain.Transfer.State.CHECKED;
+import static de.juplo.kafka.payment.transfer.domain.Transfer.State.CREATED;
 
 
 @Slf4j
@@ -26,6 +27,7 @@ public class TransferService implements CreateTransferUseCase, HandleStateChange
             stored -> log.info("transfer already exisits: {}, ignoring: {}", stored, transfer),
             () ->
             {
+              log.info("creating transfer: {}", transfer);
               repository.store(transfer);
               messagingService.send(transfer.getId(), CREATED);
             });
