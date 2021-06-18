@@ -44,7 +44,8 @@ public class TransferConsumer implements Runnable
       try
       {
         ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
-        log.debug("polled {} records", records.count());
+        if (records.count() > 0)
+          log.debug("polled {} records", records.count());
 
         records.forEach(record ->
         {
