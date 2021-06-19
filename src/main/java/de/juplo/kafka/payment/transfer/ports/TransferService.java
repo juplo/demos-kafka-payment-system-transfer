@@ -1,7 +1,7 @@
-package de.juplo.kafka.payment.transfer.domain;
+package de.juplo.kafka.payment.transfer.ports;
 
 
-import de.juplo.kafka.payment.transfer.ports.*;
+import de.juplo.kafka.payment.transfer.domain.Transfer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
