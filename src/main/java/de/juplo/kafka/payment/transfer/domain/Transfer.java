@@ -8,6 +8,8 @@ import lombok.EqualsAndHashCode;
 import java.util.LinkedList;
 import java.util.List;
 
+import static de.juplo.kafka.payment.transfer.domain.Transfer.State.*;
+
 
 @Data
 @Builder
@@ -42,6 +44,27 @@ public class Transfer
 
   public Transfer setState(State state)
   {
+    if (state == null)
+      throw new IllegalArgumentException("State must not be null!");
+
+    switch (state)
+    {
+      case CREATED:
+        if (this.state != null)
+          throw new IllegalArgumentException("Illegal state-change " + this.state + " -> CREATED");
+        break;
+
+      case CHECKED:
+      case INVALID:
+        if (this.state != CREATED)
+          throw new IllegalArgumentException("Illegal state-change " + this.state + " -> " + state);
+        break;
+
+      default:
+          throw new IllegalArgumentException("State-change not yet considered:" + this.state + " -> " + state);
+
+    }
+
     this.state = state;
     return this;
   }
