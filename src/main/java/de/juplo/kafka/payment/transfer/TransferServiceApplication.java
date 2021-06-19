@@ -80,9 +80,9 @@ public class TransferServiceApplication
             mapper,
             new TransferConsumer.ConsumerUseCases() {
               @Override
-              public void create(Transfer transfer)
+              public void create(Long id, Long payer, Long payee, Integer amount)
               {
-                productionTransferService.create(transfer);
+                productionTransferService.create(id, payer, payee, amount);
               }
 
               @Override
@@ -92,16 +92,16 @@ public class TransferServiceApplication
               }
 
               @Override
-              public void handle(Transfer transfer)
+              public void handleStateChange(Long id, Transfer.State state)
               {
-                productionTransferService.handle(transfer);
+                productionTransferService.handleStateChange(id, state);
               }
             },
             new TransferConsumer.ConsumerUseCases() {
               @Override
-              public void create(Transfer transfer)
+              public void create(Long id, Long payer, Long payee, Integer amount)
               {
-                restoreTransferService.create(transfer);
+                restoreTransferService.create(id, payer, payee, amount);
               }
 
               @Override
@@ -111,9 +111,9 @@ public class TransferServiceApplication
               }
 
               @Override
-              public void handle(Transfer transfer)
+              public void handleStateChange(Long id, Transfer.State state)
               {
-                restoreTransferService.handle(transfer);
+                restoreTransferService.handleStateChange(id, state);
               }
             });
   }

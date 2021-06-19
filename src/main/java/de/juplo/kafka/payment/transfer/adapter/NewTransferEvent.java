@@ -16,18 +16,6 @@ public class NewTransferEvent
   private Long payee;
   private Integer amount;
 
-  public Transfer toTransfer()
-  {
-    return
-        Transfer
-            .builder()
-            .id(id)
-            .payer(payer)
-            .payee(payee)
-            .amount(amount)
-            .build();
-  }
-
   public static NewTransferEvent ofTransfer(Transfer transfer)
   {
     return

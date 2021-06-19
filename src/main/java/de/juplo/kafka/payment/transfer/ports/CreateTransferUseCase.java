@@ -5,5 +5,5 @@ import de.juplo.kafka.payment.transfer.domain.Transfer;
 
 public interface CreateTransferUseCase
 {
-  void create(Transfer transfer);
+  void create(Long id, Long payer, Long payee, Integer amount);
 }

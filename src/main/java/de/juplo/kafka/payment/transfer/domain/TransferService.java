@@ -19,14 +19,28 @@ public class TransferService implements CreateTransferUseCase, HandleStateChange
   private final MessagingService messagingService;
 
   @Override
-  public void create(Transfer transfer)
+  public void create(Long id, Long payer, Long payee, Integer amount)
   {
     repository
-        .get(transfer.getId())
+        .get(id)
         .ifPresentOrElse(
-            stored -> log.info("transfer already exisits: {}, ignoring: {}", stored, transfer),
+            stored -> log.info(
+                "transfer already exisits: {}, ignoring: id={}, payer={}, payee={}, amount={}",
+                stored,
+                payer,
+                payee,
+                amount),
             () ->
             {
+              Transfer transfer =
+                  Transfer
+                      .builder()
+                      .id(id)
+                      .payer(payer)
+                      .payee(payee)
+                      .amount(amount)
+                      .build();
+
               log.info("creating transfer: {}", transfer);
               repository.store(transfer);
               messagingService.send(transfer.getId(), CREATED);
@@ -34,24 +48,34 @@ public class TransferService implements CreateTransferUseCase, HandleStateChange
   }
 
   @Override
-  public void handle(Transfer transfer)
+  public void handleStateChange(Long id, Transfer.State state)
   {
-    Transfer.State state = transfer.getState();
-    switch (state)
-    {
-      case CREATED:
-        repository.store(transfer);
-        check(transfer);
-        break;
+    get(id)
+        .ifPresentOrElse(
+            transfer ->
+            {
+              switch (state)
+              {
+                case CREATED:
 
-      case CHECKED:
-        repository.store(transfer);
-        // TODO: What's next...?
-        break;
+                  transfer.setState(CREATED);
+                  repository.store(transfer);
+                  check(transfer);
+                  break;
 
-      default:
-        log.warn("TODO: handle {} state {}", state.foreign ? "foreign" : "domain", state);
-    }
+                case CHECKED:
+
+                  transfer.setState(CHECKED);
+                  repository.store(transfer);
+                  // TODO: What's next...?
+                  break;
+
+                default:
+
+                  log.warn("TODO: handle {} state {}", state.foreign ? "foreign" : "domain", state);
+              }
+            },
+            () -> log.error("unknown transfer: {}", id));
   }
 
   private void check(Transfer transfer)

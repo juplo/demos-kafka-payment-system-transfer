@@ -2,7 +2,6 @@ package de.juplo.kafka.payment.transfer.adapter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.juplo.kafka.payment.transfer.domain.Transfer;
 import de.juplo.kafka.payment.transfer.ports.CreateTransferUseCase;
 import de.juplo.kafka.payment.transfer.ports.GetTransferUseCase;
 import de.juplo.kafka.payment.transfer.ports.HandleStateChangeUseCase;
@@ -26,8 +25,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-
-import static de.juplo.kafka.payment.transfer.domain.Transfer.State.CREATED;
 
 
 @RequestMapping("/consumer")
@@ -83,18 +80,19 @@ public class TransferConsumer implements Runnable
 
           NewTransferEvent newTransferEvent =
               mapper.readValue(record.value(), NewTransferEvent.class);
-          useCases.create(newTransferEvent.toTransfer().setState(CREATED));
+          useCases
+              .create(
+                  newTransferEvent.getId(),
+                  newTransferEvent.getPayer(),
+                  newTransferEvent.getPayee(),
+                  newTransferEvent.getAmount());
           break;
 
         case EventType.TRANSFER_STATE_CHANGED:
 
           TransferStateChangedEvent stateChangedEvent =
               mapper.readValue(record.value(), TransferStateChangedEvent.class);
-          useCases
-              .get(stateChangedEvent.getId())
-              .ifPresentOrElse(
-                  transfer -> useCases.handle(transfer.setState(stateChangedEvent.getState())),
-                  () -> log.error("unknown transfer: {}", stateChangedEvent.getId()));
+          useCases.handleStateChange(stateChangedEvent.getId(), stateChangedEvent.getState());
           break;
       }
     }

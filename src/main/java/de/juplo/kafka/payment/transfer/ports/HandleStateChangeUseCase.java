@@ -5,5 +5,5 @@ import de.juplo.kafka.payment.transfer.domain.Transfer;
 
 public interface HandleStateChangeUseCase
 {
-  void handle(Transfer transfer);
+  void handleStateChange(Long id, Transfer.State state);
 }
