@@ -16,7 +16,6 @@ public class Transfer
 {
   public enum State
   {
-    RECEIVED(false),
     CREATED(false),
     INVALID(false),
     CHECKED(false),

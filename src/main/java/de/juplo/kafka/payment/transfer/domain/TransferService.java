@@ -1,27 +1,24 @@
 package de.juplo.kafka.payment.transfer.domain;
 
 
-import de.juplo.kafka.payment.transfer.ports.GetTransferUseCase;
-import de.juplo.kafka.payment.transfer.ports.HandleTransferUseCase;
-import de.juplo.kafka.payment.transfer.ports.MessagingService;
-import de.juplo.kafka.payment.transfer.ports.TransferRepository;
+import de.juplo.kafka.payment.transfer.ports.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 
-import static de.juplo.kafka.payment.transfer.domain.Transfer.State.CHECKED;
-import static de.juplo.kafka.payment.transfer.domain.Transfer.State.CREATED;
+import static de.juplo.kafka.payment.transfer.domain.Transfer.State.*;
 
 
 @Slf4j
 @RequiredArgsConstructor
-public class TransferService implements HandleTransferUseCase, GetTransferUseCase
+public class TransferService implements CreateTransferUseCase, HandleStateChangeUseCase, GetTransferUseCase
 {
   private final TransferRepository repository;
   private final MessagingService messagingService;
 
-  private void create(Transfer transfer)
+  @Override
+  public void create(Transfer transfer)
   {
     repository
         .get(transfer.getId())
@@ -30,8 +27,7 @@ public class TransferService implements HandleTransferUseCase, GetTransferUseCas
             () ->
             {
               repository.store(transfer);
-              transfer.setState(CREATED);
-              messagingService.send(transfer);
+              messagingService.send(transfer.getId(), CREATED);
             });
   }
 
@@ -41,11 +37,6 @@ public class TransferService implements HandleTransferUseCase, GetTransferUseCas
     Transfer.State state = transfer.getState();
     switch (state)
     {
-      case RECEIVED:
-        repository.store(transfer);
-        create(transfer);
-        break;
-
       case CREATED:
         repository.store(transfer);
         check(transfer);
@@ -64,8 +55,7 @@ public class TransferService implements HandleTransferUseCase, GetTransferUseCas
   private void check(Transfer transfer)
   {
     // TODO: Do some time consuming checks...
-    transfer.setState(CHECKED);
-    messagingService.send(transfer);
+    messagingService.send(transfer.getId(), CHECKED);
   }
 
   public Optional<Transfer> get(Long id)

@@ -67,7 +67,14 @@ public class TransferServiceApplication
       TransferService transferService)
   {
     TransferConsumer transferConsumer =
-        new TransferConsumer(properties.topic, consumer, executorService, mapper, transferService);
+        new TransferConsumer(
+            properties.topic,
+            consumer,
+            executorService,
+            mapper,
+            transferService,
+            transferService,
+            transferService);
     transferConsumer.start();
     return transferConsumer;
   }

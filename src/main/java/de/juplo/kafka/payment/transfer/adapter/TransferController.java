@@ -63,7 +63,6 @@ import java.util.concurrent.CompletableFuture;
                             .payer(transferDTO.getPayer())
                             .payee(transferDTO.getPayee())
                             .amount(transferDTO.getAmount())
-                            .state(Transfer.State.RECEIVED)
                             .build())
                     .thenApply($ ->
                         ResponseEntity
