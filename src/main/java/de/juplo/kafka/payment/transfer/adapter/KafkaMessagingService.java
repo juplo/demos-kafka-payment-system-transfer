@@ -23,7 +23,7 @@ public class KafkaMessagingService implements MessagingService
 
 
   @Override
-  public CompletableFuture send(Transfer transfer)
+  public CompletableFuture<?> send(Transfer transfer)
   {
     try
     {

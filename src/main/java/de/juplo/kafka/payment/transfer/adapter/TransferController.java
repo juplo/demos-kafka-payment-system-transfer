@@ -3,7 +3,7 @@ package de.juplo.kafka.payment.transfer.adapter;
 
 import de.juplo.kafka.payment.transfer.domain.Transfer;
 import de.juplo.kafka.payment.transfer.ports.GetTransferUseCase;
-import de.juplo.kafka.payment.transfer.ports.ReceiveTransferUseCase;
+import de.juplo.kafka.payment.transfer.ports.MessagingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -20,6 +20,8 @@ import java.net.URI;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 
 @RestController
@@ -29,8 +31,8 @@ import java.util.Map;
 {
   public final static String PATH = "/transfers";
 
-  private final ReceiveTransferUseCase receiveTransferUseCase;
   private final GetTransferUseCase getTransferUseCase;
+  private final MessagingService messagingService;
 
 
   @PostMapping(
@@ -41,34 +43,46 @@ import java.util.Map;
       HttpServletRequest request,
       @Valid @RequestBody TransferDTO transferDTO)
   {
-    Transfer transfer =
-        Transfer
-            .builder()
-            .id(transferDTO.getId())
-            .payer(transferDTO.getPayer())
-            .payee(transferDTO.getPayee())
-            .amount(transferDTO.getAmount())
-            .build();
-
     DeferredResult<ResponseEntity<?>> result = new DeferredResult<>();
 
-    receiveTransferUseCase
-        .receive(transfer)
-        .thenApply(
-            $ ->
+    getTransferUseCase
+        .get(transferDTO.getId())
+        .map(transfer ->
+            CompletableFuture.completedFuture(
                 ResponseEntity
-                    .created(URI.create(PATH + "/" + transferDTO.getId()))
-                    .build())
-        .thenAccept(
-            responseEntity -> result.setResult(responseEntity))
-        .exceptionally(
-            e ->
-            {
-              result.setErrorResult(e);
-              return null;
-            });
+                    .ok()
+                    .location(location(transferDTO))
+                    .build()))
+        .or(() ->
+            Optional.of(
+                messagingService
+                    .send(
+                        Transfer
+                            .builder()
+                            .id(transferDTO.getId())
+                            .payer(transferDTO.getPayer())
+                            .payee(transferDTO.getPayee())
+                            .amount(transferDTO.getAmount())
+                            .state(Transfer.State.RECEIVED)
+                            .build())
+                    .thenApply($ ->
+                        ResponseEntity
+                            .created(location(transferDTO))
+                            .build())))
+        .get()
+        .thenAccept(responseEntity -> result.setResult(responseEntity))
+        .exceptionally(e ->
+        {
+          result.setErrorResult(e);
+          return null;
+        });
 
     return result;
+  }
+
+  private URI location(TransferDTO transferDTO)
+  {
+    return URI.create(PATH + "/" + transferDTO.getId());
   }
 
   @GetMapping(

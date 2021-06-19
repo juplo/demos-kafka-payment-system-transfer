@@ -7,5 +7,5 @@ import java.util.concurrent.CompletableFuture;
 
 public interface MessagingService
 {
-  CompletableFuture send(Transfer transfer);
+  CompletableFuture<?> send(Transfer transfer);
 }

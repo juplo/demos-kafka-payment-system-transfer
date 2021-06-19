@@ -31,19 +31,6 @@ public class TransferDTO
   private Transfer.State state;
 
 
-  public Transfer toTransfer()
-  {
-    return
-        Transfer
-            .builder()
-            .id(id)
-            .payer(payer)
-            .payee(payee)
-            .amount(amount)
-            .build();
-  }
-
-
   public static TransferDTO of(Transfer transfer)
   {
     return
