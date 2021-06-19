@@ -13,7 +13,7 @@
 
   <groupId>de.juplo.kafka.payment</groupId>
   <artifactId>transfer</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0.0</version>
   <name>Transfer Service</name>
   <description>An MVP for the Transfer Service</description>
 
