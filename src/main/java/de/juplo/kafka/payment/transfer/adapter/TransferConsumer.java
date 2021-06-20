@@ -105,6 +105,16 @@ public class TransferConsumer implements Runnable
           record.partition(),
           record.value());
     }
+    catch (IllegalArgumentException e)
+    {
+      log.error(
+          "ignoring invalid message #{} on {}/{}: {}, message={}",
+          record.offset(),
+          record.topic(),
+          record.partition(),
+          e.getMessage(),
+          record.value());
+    }
   }
 
   @EventListener
