@@ -12,4 +12,6 @@ public interface TransferRepository
   Optional<Transfer> get(Long id);
 
   void remove(Long id);
+
+  void resetStorageForPartition(int partition);
 }

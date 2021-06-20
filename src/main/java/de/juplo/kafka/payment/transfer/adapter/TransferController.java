@@ -34,6 +34,7 @@ import java.util.concurrent.CompletableFuture;
 
   private final GetTransferUseCase getTransferUseCase;
   private final MessagingService messagingService;
+  private final TransferConsumer consumer;
 
 
   @PostMapping(
@@ -91,10 +92,22 @@ import java.util.concurrent.CompletableFuture;
   public ResponseEntity<TransferDTO> get(@PathVariable Long id)
   {
     return
-        getTransferUseCase
-            .get(id)
-            .map(transfer -> ResponseEntity.ok(TransferDTO.of(transfer)))
-            .orElse(ResponseEntity.notFound().build());
+        consumer
+            .uriForKey(Long.toString(id))
+            .map(uri ->
+            {
+              ResponseEntity<TransferDTO> response =
+                  ResponseEntity
+                      .status(HttpStatus.TEMPORARY_REDIRECT)
+                      .location(URI.create(uri + PATH + "/" + id))
+                      .build();
+              return response;
+            })
+            .orElseGet(() ->
+                getTransferUseCase
+                    .get(id)
+                    .map(transfer -> ResponseEntity.ok(TransferDTO.of(transfer)))
+                    .orElse(ResponseEntity.notFound().build()));
   }
 
   @ResponseStatus(HttpStatus.BAD_REQUEST)

@@ -2,24 +2,32 @@ package de.juplo.kafka.payment.transfer.persistence;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.juplo.kafka.payment.transfer.adapter.TransferPartitioner;
 import de.juplo.kafka.payment.transfer.domain.Transfer;
 import de.juplo.kafka.payment.transfer.ports.TransferRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 
-@Component
-@RequiredArgsConstructor
 @Slf4j
 public class InMemoryTransferRepository implements TransferRepository
 {
-  private final Map<Long, String> map = new HashMap<>();
+  private final int numPartitions;
+  private final Map<Long, String> map[];
   private final ObjectMapper mapper;
+
+
+  public InMemoryTransferRepository(int numPartitions, ObjectMapper mapper)
+  {
+    this.numPartitions = numPartitions;
+    this.map = new HashMap[numPartitions];
+    for (int i = 0; i < numPartitions; i++)
+      this.map[i] = new HashMap<>();
+    this.mapper = mapper;
+  }
 
 
   @Override
@@ -27,7 +35,8 @@ public class InMemoryTransferRepository implements TransferRepository
   {
     try
     {
-      map.put(transfer.getId(), mapper.writeValueAsString(transfer));
+      int partition = partitionForId(transfer.getId());
+      map[partition].put(transfer.getId(), mapper.writeValueAsString(transfer));
     }
     catch (JsonProcessingException e)
     {
@@ -40,7 +49,7 @@ public class InMemoryTransferRepository implements TransferRepository
   {
     return
         Optional
-            .ofNullable(map.get(id))
+            .ofNullable(map[partitionForId(id)].get(id))
             .map(json -> {
               try
               {
@@ -56,6 +65,22 @@ public class InMemoryTransferRepository implements TransferRepository
   @Override
   public void remove(Long id)
   {
-    map.remove(id);
+    map[partitionForId(id)].remove(id);
+  }
+
+  @Override
+  public void resetStorageForPartition(int partition)
+  {
+    log.info(
+        "resetting storage for partition {}: dropping {} entries",
+        partition,
+        map[partition].size());
+    map[partition].clear();
+  }
+
+  private int partitionForId(long id)
+  {
+    String key = Long.toString(id);
+    return TransferPartitioner.computeHashForKey(key, numPartitions);
   }
 }
