@@ -23,8 +23,6 @@ import org.springframework.context.annotation.Bean;
 
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 
 @SpringBootApplication
@@ -58,16 +56,9 @@ public class TransferServiceApplication
   }
 
   @Bean(destroyMethod = "shutdown")
-  ExecutorService executorService()
-  {
-    return Executors.newFixedThreadPool(1);
-  }
-
-  @Bean(destroyMethod = "shutdown")
   TransferConsumer transferConsumer(
       TransferServiceProperties properties,
       KafkaConsumer<String, String> consumer,
-      ExecutorService executorService,
       ObjectMapper mapper,
       TransferService productionTransferService,
       TransferService restoreTransferService)
@@ -76,7 +67,6 @@ public class TransferServiceApplication
         new TransferConsumer(
             properties.topic,
             consumer,
-            executorService,
             mapper,
             new TransferConsumer.ConsumerUseCases() {
               @Override
