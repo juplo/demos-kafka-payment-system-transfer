@@ -11,7 +11,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Setter
 public class TransferServiceProperties
 {
-  String bootstrapServers = "localhost:9092";
-  String topic = "transfers";
-  String groupId = "transfers";
+  private String bootstrapServers = "localhost:9092";
+  private String topic = "transfers";
+  private String groupId = "transfers";
 }
