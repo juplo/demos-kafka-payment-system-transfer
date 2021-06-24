@@ -1,3 +1,5 @@
 juplo:
   transfer:
     group-instance-id: peter
+    state-store-interval: 15
+    local-state-store-path: state.bin

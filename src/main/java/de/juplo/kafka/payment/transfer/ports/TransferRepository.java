@@ -2,6 +2,7 @@ package de.juplo.kafka.payment.transfer.ports;
 
 import de.juplo.kafka.payment.transfer.domain.Transfer;
 
+import java.util.Map;
 import java.util.Optional;
 
 
@@ -13,5 +14,11 @@ public interface TransferRepository
 
   void remove(Long id);
 
-  void resetStorageForPartition(int partition);
+  long activatePartition(int partition);
+
+  void deactivatePartition(int partition, long offset);
+
+  long storedPosition(int partition);
+
+  void storeState(Map<Integer, Long> offsets);
 }

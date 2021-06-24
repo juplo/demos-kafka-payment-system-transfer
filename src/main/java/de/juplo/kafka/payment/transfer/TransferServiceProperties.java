@@ -20,6 +20,8 @@ public class TransferServiceProperties
   private String groupId = "transfers";
   private String groupInstanceId;
   private Map<String, String> instanceIdUriMapping;
+  private String localStateStorePath;
+  private int stateStoreInterval = 60;
 
   public Map<String, String> getInstanceIdUriMapping()
   {
