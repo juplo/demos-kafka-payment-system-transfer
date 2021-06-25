@@ -41,36 +41,23 @@ import java.util.concurrent.CompletableFuture;
       path = "",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public DeferredResult<ResponseEntity<?>> transfer(
-      HttpServletRequest request,
-      @Valid @RequestBody TransferDTO transferDTO)
+  public DeferredResult<ResponseEntity<?>> transfer(@Valid @RequestBody TransferDTO transferDTO)
   {
     DeferredResult<ResponseEntity<?>> result = new DeferredResult<>();
 
-    getTransferUseCase
-        .get(transferDTO.getId())
-        .map(transfer ->
-            CompletableFuture.completedFuture(
-                ResponseEntity
-                    .ok()
-                    .location(location(transferDTO))
-                    .build()))
-        .or(() ->
-            Optional.of(
-                messagingService
-                    .send(
-                        Transfer
-                            .builder()
-                            .id(transferDTO.getId())
-                            .payer(transferDTO.getPayer())
-                            .payee(transferDTO.getPayee())
-                            .amount(transferDTO.getAmount())
-                            .build())
-                    .thenApply($ ->
-                        ResponseEntity
-                            .created(location(transferDTO))
-                            .build())))
-        .get()
+    messagingService
+        .send(
+            Transfer
+                .builder()
+                .id(transferDTO.getId())
+                .payer(transferDTO.getPayer())
+                .payee(transferDTO.getPayee())
+                .amount(transferDTO.getAmount())
+                .build())
+        .thenApply($ ->
+            ResponseEntity
+                .created(location(transferDTO))
+                .build())
         .thenAccept(responseEntity -> result.setResult(responseEntity))
         .exceptionally(e ->
         {
