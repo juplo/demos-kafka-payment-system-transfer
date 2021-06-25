@@ -48,7 +48,7 @@ public class InMemoryTransferRepository implements TransferRepository
                   "restored locally stored state for partition {}: position={}, entries={}",
                   i,
                   offsets[i],
-                  map[i].size()));
+                  offsets[i] == 0 ? 0 : map[i].size()));
           return;
         }
         catch (IOException | ClassNotFoundException e)
@@ -69,7 +69,7 @@ public class InMemoryTransferRepository implements TransferRepository
               "restored state for partition {}: position={}, entries={}",
               i,
               this.data.offsets[i],
-              this.data.map[i].size()));
+              this.data.offsets[i] == 0 ? 0 : this.data.map[i].size()));
     }
   }
 
@@ -81,6 +81,9 @@ public class InMemoryTransferRepository implements TransferRepository
     {
       int partition = partitionForId(transfer.getId());
       data.map[partition].put(transfer.getId(), mapper.writeValueAsString(transfer));
+      // We reset the offset for the state of the modified partition,
+      // because the corresponding offset is not known (yet).
+      data.offsets[partition] = 0;
     }
     catch (JsonProcessingException e)
     {
@@ -115,6 +118,19 @@ public class InMemoryTransferRepository implements TransferRepository
   @Override
   public long activatePartition(int partition)
   {
+    if (data.offsets[partition] == 0)
+    {
+      // Initialize the state of the partition, if
+      // no corresponding offset is known.
+      if (data.map[partition] != null)
+        log.warn(
+            "dropping state for partition {} ({} entries), because the corresponding offset is unknown!",
+            partition,
+            data.map[partition].size());
+
+      data.map[partition] = new HashMap<>();
+    }
+
     return data.offsets[partition];
   }
 
@@ -134,6 +150,18 @@ public class InMemoryTransferRepository implements TransferRepository
   public void storeState(Map<Integer, Long> offsets)
   {
     offsets.forEach((partition, offset) -> data.offsets[partition] = offset);
+    for (int i = 0; i < numPartitions; i++)
+    {
+      if (data.offsets[i] == 0 && data.map[i] != null)
+      {
+        log.warn(
+            "dropping state for partition {} ({} entries), because the corresponding offset is unknown!",
+            i,
+            data.map[i].size());
+
+        data.map[i] = null;
+      }
+    }
     stateStore.ifPresent(file ->
     {
       try (
@@ -147,7 +175,7 @@ public class InMemoryTransferRepository implements TransferRepository
                 "locally stored state for partition {}: position={}, entries={}",
                 i,
                 data.offsets[i],
-                data.map[i]));
+                data.offsets[i] == 0 ? 0 : this.data.map[i].size()));
       }
       catch (IOException e)
       {
@@ -174,10 +202,7 @@ public class InMemoryTransferRepository implements TransferRepository
       offsets = new long[numPartitions];
       map = new Map[numPartitions];
       for (int i = 0; i < numPartitions; i++)
-      {
         offsets[i] = 0;
-        map[i] = new HashMap<>();
-      }
     }
   }
 }
