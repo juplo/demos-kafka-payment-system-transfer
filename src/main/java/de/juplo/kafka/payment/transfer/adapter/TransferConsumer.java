@@ -187,6 +187,7 @@ public class TransferConsumer implements Runnable, ConsumerRebalanceListener
     // Hence, the app would not react to any signal (CTRL-C, for example) except
     // a KILL until the restoring is finished.
     future = CompletableFuture.runAsync(() -> start());
+    log.info("start of application completed");
   }
 
 
@@ -304,7 +305,7 @@ public class TransferConsumer implements Runnable, ConsumerRebalanceListener
   {
     if (running)
     {
-      log.info("already running!");
+      log.info("consumer already running!");
       return "Already running!";
     }
 
@@ -325,7 +326,7 @@ public class TransferConsumer implements Runnable, ConsumerRebalanceListener
     running = true;
     future = CompletableFuture.runAsync(this);
 
-    log.info("started");
+    log.info("consumer started");
     return "Started";
   }
 
@@ -334,7 +335,7 @@ public class TransferConsumer implements Runnable, ConsumerRebalanceListener
   {
     if (!running)
     {
-      log.info("not running!");
+      log.info("consumer not running!");
       return "Not running";
     }
 
@@ -359,7 +360,7 @@ public class TransferConsumer implements Runnable, ConsumerRebalanceListener
       consumer.unsubscribe();
     }
 
-    log.info("stopped");
+    log.info("consumer stopped");
     return "Stopped";
   }
 
